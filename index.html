@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DuckStore+ Video Event</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --bg-color: #000000; --text-color: #ffffff; --accent-color: #0a84ff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 60px;
+            margin: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        }
+
+        #loading-terminal {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            pointer-events: none;
+        }
+
+        .log-line {
+            font-family: 'Ubuntu Mono', 'Courier New', monospace;
+            font-size: 10px;
+            color: #ccc;
+            display: none;
+            line-height: 1.2;
+        }
+
+        .log-line.show { display: block; }
+        .log-success { color: #fff; font-weight: bold; }
+
+        @keyframes fadeInUpModal {
+            from { opacity: 0; transform: translateY(100px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes fadeOutDownModal {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(100px) scale(0.95); }
+        }
+        @keyframes msgEnter {
+            from { opacity: 0; transform: translate(-50%, -40%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        @keyframes msgExit {
+            to { opacity: 0; transform: translate(-50%, -50%); }
+        }
+        @keyframes btnEnter {
+            from { opacity: 0; transform: translate(-50%, 50px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        @keyframes btnExit {
+            to { opacity: 0; transform: translate(-50%, 50px); }
+        }
+
+        .modal-enter { animation: fadeInUpModal 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .modal-exit { animation: fadeOutDownModal 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .msg-enter-anim { display: block; animation: msgEnter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .msg-exit-anim { animation: msgExit 0.5s forwards; }
+        .btn-enter-anim { display: block; animation: btnEnter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .btn-exit-anim { animation: btnExit 0.5s forwards; }
+
+        .modal-container {
+            width: 100%;
+            max-width: 380px;
+            padding: 0 20px;
+            display: none; 
+            opacity: 0; 
+        }
+
+        .event-modal {
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            background-color: #000;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+
+        .modal-video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        .event-modal::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .modal-header, .modal-body, .modal-footer-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .tag-happening { background: rgba(255,255,255,0.25); backdrop-filter: blur(10px); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .close-btn { width: 30px; height: 30px; background: rgba(0,0,0,0.4); border-radius: 50%; border: none; color: #fff; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        
+        .content-spacer { flex: 1; }
+        .modal-body { padding: 0 20px 20px 20px; position: relative; }
+        .eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+        .event-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; line-height: 1.1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .event-desc { font-size: 15px; color: rgba(255,255,255,0.9); max-width: 85%; margin-bottom: 10px; line-height: 1.4; text-shadow: 0 1px 5px rgba(0,0,0,0.5); }
+
+        .modal-footer-container { padding: 0 15px 15px 15px; }
+        .modal-footer { background: rgba(20,20,20,0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-radius: 20px; padding: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .app-icon-small { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .app-info-text { flex: 1; }
+        .app-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+        .app-sub { font-size: 13px; color: rgba(255,255,255,0.7); }
+        .btn-get-white { background: #fff; color: #000; font-weight: 700; font-size: 14px; padding: 8px 22px; border-radius: 20px; border: none; cursor: pointer; }
+
+        #final-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 85%;
+            max-width: 400px;
+            z-index: 200;
+            opacity: 0;
+        }
+
+        .message-text { font-size: 16px; line-height: 1.5; color: rgba(255, 255, 255, 0.9); margin-bottom: 10px; }
+        .telegram-link { font-size: 16px; font-weight: 700; color: var(--accent-color); }
+        .telegram-link a { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+        .telegram-link a:hover { border-bottom: 1px solid var(--accent-color); }
+
+        #back-btn {
+            display: none;
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translate(-50%, 0);
+            background-color: rgba(50, 50, 50, 0.8);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 200;
+            opacity: 0;
+        }
+        #back-btn:hover { background-color: rgba(80, 80, 80, 0.9); }
+
+    </style>
+</head>
+<body>
+
+    <div id="loading-terminal">
+        <div id="log-1" class="log-line">> connecting server connection...</div>
+        <div id="log-2" class="log-line"></div>
+        <div id="log-3" class="log-line log-success">> connected</div>
+    </div>
+
+    <div id="main-modal" class="modal-container">
+        <div class="event-modal">
+            
+            <video class="modal-video-bg" autoplay loop muted playsinline>
+                <source src="assets/modal-bg.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+
+            <div class="modal-header">
+                <span class="tag-happening">HAPPENING NOW</span>
+                <button id="close-btn-action" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="content-spacer"></div>
+            <div class="modal-body">
+                <div class="eyebrow">SPECIAL EVENT</div>
+                <h1 class="event-title">Event title</h1>
+                <p class="event-desc">Event description</p>
+            </div>
+            <div class="modal-footer-container">
+                <div class="modal-footer">
+                    <div class="app-icon-small"><i class="fa-solid fa-pen-nib" style="color: white; font-size: 24px;"></i></div>
+                    <div class="app-info-text">
+                        <div class="app-title">Title</div>
+                        <div class="app-sub">Subtitle</div>
+                    </div>
+                    <button class="btn-get-white">Get</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="final-message">
+        <p class="message-text">harap laporkan kepada developer jika mengalami masalah pada halaman.</p>
+        <p class="telegram-link">Telegram : <a href="https://t.me/daxd11" target="_blank">@daxd11</a></p>
+    </div>
+
+    <button id="back-btn">Kembali</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const log1 = document.getElementById('log-1');
+            const log2 = document.getElementById('log-2');
+            const log3 = document.getElementById('log-3');
+            const terminal = document.getElementById('loading-terminal');
+            const modal = document.getElementById('main-modal');
+            const closeBtn = document.getElementById('close-btn-action');
+            const finalMessage = document.getElementById('final-message');
+            const backBtn = document.getElementById('back-btn');
+
+            function showModal() {
+                modal.style.display = 'block'; 
+                modal.classList.remove('modal-exit'); 
+                modal.classList.add('modal-enter');     
+            }
+
+            function hideModal(callback) {
+                modal.classList.remove('modal-enter');
+                modal.classList.add('modal-exit');    
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    if (callback) callback();
+                }, 600);
+            }
+
+            function showMessageAndBack() {
+                finalMessage.classList.remove('msg-exit-anim');
+                backBtn.classList.remove('btn-exit-anim');
+
+                finalMessage.style.display = 'block';
+                backBtn.style.display = 'block';
+
+                finalMessage.classList.add('msg-enter-anim');
+                backBtn.classList.add('btn-enter-anim');
+            }
+
+            function hideMessageAndBack(callback) {
+                finalMessage.classList.remove('msg-enter-anim');
+                backBtn.classList.remove('btn-enter-anim');
+
+                finalMessage.classList.add('msg-exit-anim');
+                backBtn.classList.add('btn-exit-anim');
+
+                setTimeout(() => {
+                    finalMessage.style.display = 'none';
+                    backBtn.style.display = 'none';
+                    if (callback) callback();
+                }, 500);
+            }
+
+            const randomHost = Math.floor(Math.random() * 90000) + 10000;
+            log2.innerText = `> host : ${randomHost}`;
+
+            setTimeout(() => { log1.classList.add('show'); }, 100);
+            setTimeout(() => { log2.classList.add('show'); }, 300);
+            setTimeout(() => { log3.classList.add('show'); }, 600);
+
+            setTimeout(() => {
+                terminal.style.display = 'none';
+                showModal();
+            }, 1000);
+
+            closeBtn.addEventListener('click', () => {
+                hideModal(() => {
+                    showMessageAndBack();
+                });
+            });
+
+            backBtn.addEventListener('click', () => {
+                hideMessageAndBack(() => {
+                    showModal(); 
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
