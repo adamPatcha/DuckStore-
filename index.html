@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DuckStore+</title>
+    <title>DuckStore+ Event</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
@@ -55,6 +55,7 @@
             from { opacity: 1; transform: translateY(0) scale(1); }
             to { opacity: 0; transform: translateY(100px) scale(0.95); }
         }
+
         @keyframes msgEnter {
             from { opacity: 0; transform: translate(-50%, -40%); }
             to { opacity: 1; transform: translate(-50%, -50%); }
@@ -62,6 +63,7 @@
         @keyframes msgExit {
             to { opacity: 0; transform: translate(-50%, -50%); }
         }
+
         @keyframes btnEnter {
             from { opacity: 0; transform: translate(-50%, 50px); }
             to { opacity: 1; transform: translate(-50%, 0); }
@@ -88,7 +90,11 @@
         .event-modal {
             width: 100%;
             aspect-ratio: 9 / 16;
-            background-color: #000;
+            background-color: #1a1a1a;
+            background-image: url('assets/modal-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             border-radius: 28px;
             overflow: hidden;
             position: relative;
@@ -97,27 +103,16 @@
             box-shadow: 0 25px 50px rgba(0,0,0,0.6);
         }
 
-        .modal-video-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-        }
-
         .event-modal::before {
             content: '';
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
             z-index: 1;
             pointer-events: none;
         }
 
         .modal-header, .modal-body, .modal-footer-container {
-            position: relative;
             z-index: 2;
         }
 
@@ -133,7 +128,24 @@
 
         .modal-footer-container { padding: 0 15px 15px 15px; }
         .modal-footer { background: rgba(20,20,20,0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-radius: 20px; padding: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .app-icon-small { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        
+        .app-icon-small { 
+            width: 48px; 
+            height: 48px; 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden;
+        }
+        
+        .app-icon-small img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .app-info-text { flex: 1; }
         .app-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
         .app-sub { font-size: 13px; color: rgba(255,255,255,0.7); }
@@ -175,7 +187,6 @@
             opacity: 0;
         }
         #back-btn:hover { background-color: rgba(80, 80, 80, 0.9); }
-
     </style>
 </head>
 <body>
@@ -188,30 +199,26 @@
 
     <div id="main-modal" class="modal-container">
         <div class="event-modal">
-            
-            <video class="modal-video-bg" autoplay loop muted playsinline>
-                <source src="assets/modal-bg.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-
             <div class="modal-header">
-                <span class="tag-happening">New Version</span>
+                <span class="tag-happening">HAPPENING NOW</span>
                 <button id="close-btn-action" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="content-spacer"></div>
             <div class="modal-body">
-                <div class="eyebrow">in stages</div>
+                <div class="eyebrow">NewSite</div>
                 <h1 class="event-title">DuckStore+</h1>
-                <p class="event-desc">Welcome to DuckStore+, a modern app curation platform designed to simplify your access to official apps and modified versions (mods).</p>
+                <p class="event-desc">Very easy to get apps</p>
             </div>
             <div class="modal-footer-container">
                 <div class="modal-footer">
-                    <div class="app-icon-small"><i class="fa-solid fa-pen-nib" style="color: white; font-size: 24px;"></i></div>
-                    <div class="app-info-text">
-                        <div class="app-title">Title</div>
-                        <div class="app-sub">Subtitle</div>
+                    <div class="app-icon-small">
+                        <img src="assets/app-icon.png" alt="Icon">
                     </div>
-                    <button class="btn-get-white">Get</button>
+                    <div class="app-info-text">
+                        <div class="app-title">Monument Valley 2</div>
+                        <div class="app-sub">A Story Of Beauty And Illusion</div>
+                    </div>
+                    <button id="get-btn-action" class="btn-get-white">Get</button>
                 </div>
             </div>
         </div>
@@ -234,6 +241,7 @@
             const closeBtn = document.getElementById('close-btn-action');
             const finalMessage = document.getElementById('final-message');
             const backBtn = document.getElementById('back-btn');
+            const getBtn = document.getElementById('get-btn-action');
 
             function showModal() {
                 modal.style.display = 'block'; 
@@ -298,8 +306,11 @@
                     showModal(); 
                 });
             });
+
+            getBtn.addEventListener('click', () => {
+                window.location.href = "https://play.google.com/store/search?q=Monument+Valley+2&c=apps";
+            });
         });
     </script>
-
 </body>
 </html>
